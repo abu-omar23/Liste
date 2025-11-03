@@ -16,7 +16,6 @@
     input[type=text]{flex:1;padding:10px;border-radius:8px;border:1px solid #e6edf3}
     button{border:0;padding:10px 12px;border-radius:8px;cursor:pointer}
     button.primary{background:var(--accent);color:#fff}
-    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
     .stats{display:flex;gap:12px;align-items:center;margin-top:12px;color:var(--muted)}
     ul{list-style:none;padding:0;margin:12px 0 0}
     li{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:8px}
@@ -25,13 +24,13 @@
     .name{flex:1;cursor:pointer;font-weight:500}
     .count{font-weight:500;min-width:60px;text-align:center}
     .icon-btn{background:transparent;border:0;cursor:pointer;padding:6px;border-radius:6px;font-size:16px}
-    .danger{background:#fee2e2;color:#b91c1c}
     .details{font-size:13px;color:var(--muted);margin-left:28px}
     .hidden{display:none}
     .tabs{display:flex;gap:8px;margin-bottom:12px}
     .tab-btn{background:#e5e7eb;padding:8px 12px;border-radius:8px;cursor:pointer;border:0}
     .tab-btn.active{background:var(--accent);color:#fff}
     footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
+    input[type=checkbox]{transform:scale(1.2);cursor:pointer}
   </style>
 </head>
 <body>
@@ -49,9 +48,6 @@
         <input id="nameInput" type="text" placeholder="Name hinzufügen (z. B. Maria)" autocomplete="off" />
         <button id="addBtn" class="primary" type="submit">Hinzufügen</button>
       </form>
-      <div class="controls">
-        <button id="clearAll" class="danger">Alle löschen</button>
-      </div>
       <div class="stats">
         <div id="totalStat">Gesamt: 0</div>
       </div>
@@ -68,7 +64,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'anwesenheitsliste_v2';
+    const STORAGE_KEY = 'anwesenheitsliste_v3';
     let activeItems = load().active || [];
     let doneItems = load().done || [];
 
@@ -77,7 +73,6 @@
     const totalStat = document.getElementById('totalStat');
     const addForm = document.getElementById('addForm');
     const nameInput = document.getElementById('nameInput');
-    const clearAllBtn = document.getElementById('clearAll');
     const activeTab = document.getElementById('activeTab');
     const doneTab = document.getElementById('doneTab');
     const activeSection = document.getElementById('activeSection');
@@ -97,6 +92,8 @@
     function render(){
       listEl.innerHTML = '';
       activeItems.forEach(it => {
+        if(it.count >= 8) return; // ausgeblendet, wenn fertig
+
         const li = document.createElement('li');
         const row = document.createElement('div');
         row.className = 'row';
@@ -120,12 +117,13 @@
         minusBtn.textContent = '−';
         minusBtn.addEventListener('click', () => decrement(it.id));
 
-        const delBtn = document.createElement('button');
-        delBtn.className = 'icon-btn';
-        delBtn.textContent = '🗑';
-        delBtn.addEventListener('click', () => removeItem(it.id));
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.checked = !!it.registered;
+        check.title = 'Anmeldung abgegeben';
+        check.addEventListener('change', () => toggleRegistered(it.id, check.checked));
 
-        row.append(name, minusBtn, plusBtn, count, delBtn);
+        row.append(name, minusBtn, plusBtn, count, check);
         li.append(row);
         listEl.append(li);
       });
@@ -167,12 +165,7 @@
 
     function addItem(name){
       if(!name.trim()) return;
-      activeItems.unshift({ id: uid(), name: name.trim(), count: 0, dates: [] });
-      render();
-    }
-
-    function removeItem(id){
-      activeItems = activeItems.filter(i => i.id !== id);
+      activeItems.unshift({ id: uid(), name: name.trim(), count: 0, dates: [], registered: false });
       render();
     }
 
@@ -185,7 +178,6 @@
             i.dates.push(datum);
             if(i.count === 8){
               doneItems.unshift({...i, completed: datum});
-              activeItems = activeItems.filter(x => x.id !== id);
             }
           }
         }
@@ -208,13 +200,9 @@
       render();
     }
 
-    function clearAll(){
-      if(confirm('Alle Einträge wirklich löschen?')){
-        activeItems = [];
-        doneItems = [];
-        render();
-        renderDone();
-      }
+    function toggleRegistered(id, value){
+      activeItems = activeItems.map(i => i.id === id ? {...i, registered:value} : i);
+      render();
     }
 
     function showActive(){
@@ -238,7 +226,6 @@
       nameInput.focus();
     });
 
-    clearAllBtn.addEventListener('click', clearAll);
     activeTab.addEventListener('click', showActive);
     doneTab.addEventListener('click', showDone);
     backBtn.addEventListener('click', showActive);
