@@ -40,6 +40,7 @@
     .popup{position:absolute;right:10px;top:40px;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,0.1);padding:6px;display:flex;flex-direction:column;gap:6px;z-index:10;opacity:0;animation:fadeIn .2s forwards}
     .popup button{font-size:13px;padding:6px 8px}
     @keyframes fadeIn{from{opacity:0;transform:scale(0.95);}to{opacity:1;transform:scale(1);}}
+    .status-box{width:18px;height:18px;border-radius:4px}
   </style>
 </head>
 <body>
@@ -57,7 +58,7 @@
         <input id="nameInput" type="text" placeholder="Name hinzufügen (z. B. Maria)" autocomplete="off" />
         <button id="addBtn" class="primary" type="submit">Hinzufügen</button>
       </form>
-      <div class="check-title">Anmeldung ausgeteilt / Anmeldung erhalten</div>
+      <div class="check-title">Abgabe / Anmeldung</div>
       <ul id="list"></ul>
     </section>
 
@@ -71,7 +72,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'anwesenheitsliste_v8';
+    const STORAGE_KEY = 'anwesenheitsliste_v9';
     let activeItems = load().active || [];
     let doneItems = load().done || [];
 
@@ -115,12 +116,10 @@
         const abgabe=document.createElement('input');
         abgabe.type='checkbox';
         abgabe.checked=!!it.registered;
-        abgabe.title='Anmeldung ausgeteilt';
         abgabe.addEventListener('change',()=>toggleAbgabe(it.id,abgabe.checked));
         const anmeldung=document.createElement('input');
         anmeldung.type='checkbox';
         anmeldung.checked=!!it.enrolled;
-        anmeldung.title='Anmeldung erhalten';
         anmeldung.addEventListener('change',()=>toggleAnmeldung(it.id,anmeldung.checked));
         checkboxes.append(abgabe,anmeldung);
 
@@ -177,13 +176,11 @@
         name.className='name';
         name.textContent=it.name;
 
-        const abgabe=document.createElement('input');
-        abgabe.type='checkbox';
-        abgabe.disabled=true;
-        abgabe.checked=!!it.registered;
-        abgabe.style.accentColor=it.registered?'var(--green)':'var(--red)';
+        const status=document.createElement('div');
+        status.className='status-box';
+        status.style.background=it.registered?'var(--green)':'var(--red)';
 
-        row.append(name,abgabe);
+        row.append(name,status);
 
         const date=document.createElement('span');
         date.className='details';
