@@ -14,16 +14,17 @@
     .card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
     form{display:flex;gap:8px;flex-wrap:wrap}
     input[type=text]{flex:1;padding:10px;border-radius:8px;border:1px solid #e6edf3}
-    button{border:0;padding:10px 12px;border-radius:8px;cursor:pointer}
-    button.primary{background:var(--accent);color:#fff}
+    button{border:0;padding:10px 16px;border-radius:10px;cursor:pointer;min-width:44px;min-height:44px;font-size:18px}
+    button.primary{background:var(--accent);color:#fff;padding:10px 14px;min-height:auto;font-size:16px}
     .stats{display:flex;gap:12px;align-items:center;margin-top:12px;color:var(--muted)}
     ul{list-style:none;padding:0;margin:12px 0 0}
     li{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:8px}
     li:nth-child(odd){background:linear-gradient(0deg, rgba(2,6,23,0.03), rgba(2,6,23,0.03))}
-    .row{display:flex;align-items:center;gap:8px}
+    .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
     .name{flex:1;cursor:pointer;font-weight:500}
     .count{font-weight:500;min-width:60px;text-align:center}
-    .icon-btn{background:transparent;border:0;cursor:pointer;padding:6px;border-radius:6px;font-size:16px}
+    .checkboxes{display:flex;gap:6px;align-items:center;justify-content:center}
+    .icon-btn{background:transparent;border:1px solid #d1d5db;cursor:pointer;padding:10px 14px;border-radius:10px;font-size:20px;min-width:44px;min-height:44px}
     .details{font-size:13px;color:var(--muted);margin-left:28px}
     .hidden{display:none}
     .tabs{display:flex;gap:8px;margin-bottom:12px}
@@ -31,6 +32,7 @@
     .tab-btn.active{background:var(--accent);color:#fff}
     footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
     input[type=checkbox]{transform:scale(1.2);cursor:pointer}
+    .check-title{text-align:right;font-size:13px;color:var(--muted);margin-bottom:4px}
   </style>
 </head>
 <body>
@@ -51,6 +53,7 @@
       <div class="stats">
         <div id="totalStat">Gesamt: 0</div>
       </div>
+      <div class="check-title">Abgabe / Anmeldung</div>
       <ul id="list"></ul>
     </section>
 
@@ -64,7 +67,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'anwesenheitsliste_v3';
+    const STORAGE_KEY = 'anwesenheitsliste_v4';
     let activeItems = load().active || [];
     let doneItems = load().done || [];
 
@@ -117,13 +120,24 @@
         minusBtn.textContent = '−';
         minusBtn.addEventListener('click', () => decrement(it.id));
 
-        const check = document.createElement('input');
-        check.type = 'checkbox';
-        check.checked = !!it.registered;
-        check.title = 'Anmeldung abgegeben';
-        check.addEventListener('change', () => toggleRegistered(it.id, check.checked));
+        const checkboxes = document.createElement('div');
+        checkboxes.className = 'checkboxes';
 
-        row.append(name, minusBtn, plusBtn, count, check);
+        const abgabe = document.createElement('input');
+        abgabe.type = 'checkbox';
+        abgabe.checked = !!it.registered;
+        abgabe.title = 'Abgabe';
+        abgabe.addEventListener('change', () => toggleAbgabe(it.id, abgabe.checked));
+
+        const anmeldung = document.createElement('input');
+        anmeldung.type = 'checkbox';
+        anmeldung.checked = !!it.enrolled;
+        anmeldung.title = 'Anmeldung';
+        anmeldung.addEventListener('change', () => toggleAnmeldung(it.id, anmeldung.checked));
+
+        checkboxes.append(abgabe, anmeldung);
+
+        row.append(name, minusBtn, plusBtn, count, checkboxes);
         li.append(row);
         listEl.append(li);
       });
@@ -165,7 +179,7 @@
 
     function addItem(name){
       if(!name.trim()) return;
-      activeItems.unshift({ id: uid(), name: name.trim(), count: 0, dates: [], registered: false });
+      activeItems.unshift({ id: uid(), name: name.trim(), count: 0, dates: [], registered: false, enrolled: false });
       render();
     }
 
@@ -200,8 +214,13 @@
       render();
     }
 
-    function toggleRegistered(id, value){
+    function toggleAbgabe(id, value){
       activeItems = activeItems.map(i => i.id === id ? {...i, registered:value} : i);
+      render();
+    }
+
+    function toggleAnmeldung(id, value){
+      activeItems = activeItems.map(i => i.id === id ? {...i, enrolled:value} : i);
       render();
     }
 
