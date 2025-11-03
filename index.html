@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Namensliste mit Anwesenheitszählung (8 Freitage)</title>
   <style>
-    :root{--bg:#f7f9fc;--card:#ffffff;--accent:#2563eb;--muted:#6b7280}
-    *{box-sizing:border-box}
+    :root{--bg:#f7f9fc;--card:#ffffff;--accent:#2563eb;--muted:#6b7280;--click:#d1d5db}
+    *{box-sizing:border-box;user-select:none;-webkit-user-select:none;-ms-user-select:none}
     body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:var(--bg); margin:0; padding:24px; color:#0f172a}
     .container{max-width:720px; margin:0 auto}
     header{display:flex;align-items:center;gap:16px;margin-bottom:18px;flex-wrap:wrap;justify-content:space-between}
@@ -14,21 +14,24 @@
     .card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
     form{display:flex;gap:8px;flex-wrap:wrap}
     input[type=text]{flex:1;padding:10px;border-radius:8px;border:1px solid #e6edf3}
-    button{border:0;padding:10px 16px;border-radius:10px;cursor:pointer;min-width:44px;min-height:44px;font-size:18px}
+    button{border:0;padding:10px 16px;border-radius:10px;cursor:pointer;min-width:44px;min-height:44px;font-size:18px;transition:background-color 0.2s ease}
+    button:active{background-color:var(--click)}
     button.primary{background:var(--accent);color:#fff;padding:10px 14px;min-height:auto;font-size:16px}
     .stats{display:flex;gap:12px;align-items:center;margin-top:12px;color:var(--muted)}
     ul{list-style:none;padding:0;margin:12px 0 0}
     li{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:8px}
     li:nth-child(odd){background:linear-gradient(0deg, rgba(2,6,23,0.03), rgba(2,6,23,0.03))}
     .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-    .name{flex:1;cursor:pointer;font-weight:500}
+    .name{flex:1;cursor:pointer;font-weight:500;transition:background-color 0.2s ease;padding:6px 8px;border-radius:6px}
+    .name:active{background-color:var(--click)}
     .count{font-weight:500;min-width:60px;text-align:center}
     .checkboxes{display:flex;gap:6px;align-items:center;justify-content:center}
-    .icon-btn{background:transparent;border:1px solid #d1d5db;cursor:pointer;padding:10px 14px;border-radius:10px;font-size:20px;min-width:44px;min-height:44px}
+    .icon-btn{background:transparent;border:1px solid #d1d5db;cursor:pointer;padding:10px 14px;border-radius:10px;font-size:20px;min-width:44px;min-height:44px;transition:background-color 0.2s ease}
+    .icon-btn:active{background-color:var(--click)}
     .details{font-size:13px;color:var(--muted);margin-left:28px}
     .hidden{display:none}
     .tabs{display:flex;gap:8px;margin-bottom:12px}
-    .tab-btn{background:#e5e7eb;padding:8px 12px;border-radius:8px;cursor:pointer;border:0}
+    .tab-btn{background:#e5e7eb;padding:8px 12px;border-radius:8px;cursor:pointer;border:0;transition:background-color 0.2s ease}
     .tab-btn.active{background:var(--accent);color:#fff}
     footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
     input[type=checkbox]{transform:scale(1.2);cursor:pointer}
@@ -67,7 +70,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'anwesenheitsliste_v4';
+    const STORAGE_KEY = 'anwesenheitsliste_v5';
     let activeItems = load().active || [];
     let doneItems = load().done || [];
 
@@ -151,9 +154,18 @@
         const li = document.createElement('li');
         const row = document.createElement('div');
         row.className = 'row';
+
         const name = document.createElement('span');
         name.className = 'name';
         name.textContent = it.name;
+
+        const abgabeBox = document.createElement('input');
+        abgabeBox.type = 'checkbox';
+        abgabeBox.disabled = true;
+        abgabeBox.checked = !!it.registered;
+        abgabeBox.title = 'Abgabe';
+
+        row.append(name, abgabeBox);
 
         const date = document.createElement('span');
         date.className = 'details';
@@ -165,13 +177,19 @@
 
         const detailsDiv = document.createElement('div');
         detailsDiv.className = 'details hidden';
-        detailsDiv.innerHTML = it.dates.map((d,i)=>`${i+1}. ${d}`).join('<br>');
+        let text = it.dates.map((d,i)=>`${i+1}. ${d}`).join('<br>');
+        if(it.registeredDate || it.enrolledDate){
+          text += '<br>---';
+          if(it.registeredDate) text += `<br>Abgabe: ${it.registeredDate}`;
+          if(it.enrolledDate) text += `<br>Anmeldung: ${it.enrolledDate}`;
+        }
+        detailsDiv.innerHTML = text;
+
         detailsBtn.addEventListener('click',()=>{
           detailsDiv.classList.toggle('hidden');
         });
 
-        row.append(name, detailsBtn);
-        li.append(row, date, detailsDiv);
+        li.append(row, date, detailsBtn, detailsDiv);
         doneListEl.append(li);
       });
       save();
@@ -179,7 +197,7 @@
 
     function addItem(name){
       if(!name.trim()) return;
-      activeItems.unshift({ id: uid(), name: name.trim(), count: 0, dates: [], registered: false, enrolled: false });
+      activeItems.unshift({ id: uid(), name: name.trim(), count: 0, dates: [], registered: false, enrolled: false, registeredDate: '', enrolledDate: '' });
       render();
     }
 
@@ -215,12 +233,14 @@
     }
 
     function toggleAbgabe(id, value){
-      activeItems = activeItems.map(i => i.id === id ? {...i, registered:value} : i);
+      const datum = new Date().toLocaleDateString('de-DE');
+      activeItems = activeItems.map(i => i.id === id ? {...i, registered:value, registeredDate:value?datum:i.registeredDate} : i);
       render();
     }
 
     function toggleAnmeldung(id, value){
-      activeItems = activeItems.map(i => i.id === id ? {...i, enrolled:value} : i);
+      const datum = new Date().toLocaleDateString('de-DE');
+      activeItems = activeItems.map(i => i.id === id ? {...i, enrolled:value, enrolledDate:value?datum:i.enrolledDate} : i);
       render();
     }
 
