@@ -176,9 +176,13 @@
         name.className='name';
         name.textContent=it.name;
     
+        // Statusanzeige:
+        // Grün = ausgeteilt + erhalten
+        // Rot = nicht erhalten oder nicht ausgeteilt
         const status=document.createElement('div');
         status.className='status-box';
-        status.style.background=it.registered ? 'var(--green)' : 'var(--red)';
+        const allesErledigt = it.registered && it.enrolled;
+        status.style.background = allesErledigt ? 'var(--green)' : 'var(--red)';
     
         row.append(name,status);
     
@@ -195,7 +199,6 @@
         let text=it.dates.map((d,i)=>`${i+1}. Einheit – ${d}`).join('<br>');
         text += '<br>---';
     
-        // Detailanzeige mit Farben und Hinweisen
         if(it.registeredDate){
           // Ausgeteilt
           text += `<br>Anmeldung ausgeteilt: ${it.registeredDate}`;
@@ -210,7 +213,7 @@
           // Noch nicht ausgeteilt
           text += `<br><span style="color:var(--red)">Anmeldung nicht ausgeteilt</span>`;
           text += `<br><span style="color:var(--red)">Anmeldung nicht erhalten</span>`;
-          text += `<br><b style="color:var(--red)">Anmeldung noch austeilen!</b>`;
+          text += `<br><b style="color:var(--red)">⚠️ Anmeldung noch austeilen!</b>`;
         }
     
         detailsDiv.innerHTML = text;
@@ -220,6 +223,7 @@
       });
       save();
     }
+
 
 
     function addItem(name){
