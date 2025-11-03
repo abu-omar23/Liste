@@ -3,38 +3,43 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Namensliste – Anwesenheit</title>
+  <title>Anwesenheitsliste</title>
   <style>
-    :root{--bg:#f7f9fc;--card:#ffffff;--accent:#2563eb;--muted:#6b7280;--click:#d1d5db}
-    *{box-sizing:border-box;user-select:none;-webkit-user-select:none;-ms-user-select:none;margin:0;padding:0}
-    body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:var(--bg); padding:20px; color:#0f172a}
+    :root{
+      --bg:#f7f9fc;--card:#fff;--accent:#2563eb;--muted:#6b7280;--click:#d1d5db;
+      --green:#22c55e;--red:#ef4444;
+    }
+    *{box-sizing:border-box;user-select:none;-webkit-user-select:none;margin:0;padding:0}
+    body{font-family:Inter,system-ui,sans-serif;background:var(--bg);padding:20px;color:#0f172a}
     .container{max-width:720px;margin:0 auto}
     header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap}
     h1{font-size:18px;margin-bottom:6px}
     .card{background:var(--card);border-radius:10px;padding:14px;box-shadow:0 4px 12px rgba(2,6,23,0.06)}
     form{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
     input[type=text]{padding:8px;border-radius:8px;border:1px solid #d1d5db;font-size:14px;width:100%}
-    button{border:0;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;transition:background-color 0.2s ease}
+    button{border:0;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;transition:background-color .2s}
     button:active{background-color:var(--click)}
     button.primary{background:var(--accent);color:#fff;width:fit-content;align-self:center;margin-top:4px}
     .tabs{display:flex;gap:8px;margin-bottom:10px}
-    .tab-btn{background:#e5e7eb;padding:6px 10px;border-radius:8px;cursor:pointer;border:0;font-size:14px;transition:background-color 0.2s ease}
+    .tab-btn{background:#e5e7eb;padding:6px 10px;border-radius:8px;cursor:pointer;border:0;font-size:14px;transition:background-color .2s}
     .tab-btn.active{background:var(--accent);color:#fff}
     ul{list-style:none;margin-top:8px;padding:0}
-    li{display:flex;flex-direction:column;padding:6px;border-radius:6px}
+    li{display:flex;flex-direction:column;padding:6px;border-radius:6px;position:relative}
     li:nth-child(odd){background:rgba(2,6,23,0.03)}
     .row{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow:hidden}
-    .name{flex:1;cursor:pointer;font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:4px;border-radius:4px;transition:background-color 0.2s ease}
+    .name{flex:1;cursor:pointer;font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:4px;border-radius:4px;transition:background-color .2s}
     .name:active{background-color:var(--click)}
-    .count{font-size:14px;min-width:45px;text-align:center}
+    .count{font-size:14px;min-width:50px;text-align:center}
     .checkboxes{display:flex;gap:4px;align-items:center;justify-content:center}
-    input[type=checkbox]{transform:scale(1);cursor:pointer}
-    .icon-btn{background:transparent;border:1px solid #d1d5db;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:16px;line-height:1;transition:background-color 0.2s ease;min-width:36px;min-height:32px}
+    input[type=checkbox]{transform:scale(1.1);cursor:pointer}
+    .icon-btn{background:transparent;border:1px solid #d1d5db;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:16px;line-height:1;transition:background-color .2s;min-width:36px;min-height:32px}
     .icon-btn:active{background-color:var(--click)}
     .hidden{display:none}
     .details{font-size:12px;color:var(--muted);margin-left:22px}
     footer{text-align:center;color:var(--muted);font-size:12px;margin-top:14px}
     .check-title{text-align:right;font-size:12px;color:var(--muted);margin-bottom:4px}
+    .popup{position:absolute;right:10px;top:40px;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,0.1);padding:6px;display:flex;flex-direction:column;gap:6px;z-index:10}
+    .popup button{font-size:13px;padding:6px 8px}
   </style>
 </head>
 <body>
@@ -62,11 +67,11 @@
       <ul id="doneList"></ul>
     </section>
 
-    <footer>Die Anwesenheiten werden lokal im Browser gespeichert.</footer>
+    <footer>Alles wird lokal im Browser gespeichert.</footer>
   </div>
 
   <script>
-    const STORAGE_KEY = 'anwesenheitsliste_v6';
+    const STORAGE_KEY = 'anwesenheitsliste_v7';
     let activeItems = load().active || [];
     let doneItems = load().done || [];
 
@@ -80,188 +85,169 @@
     const doneSection = document.getElementById('doneSection');
     const backBtn = document.getElementById('backBtn');
 
-    function save(){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({active: activeItems, done: doneItems}));
-    }
-    function load(){
-      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {active:[],done:[]}; } catch(e){ return {active:[],done:[]}; }
-    }
-    function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+    function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify({active: activeItems, done: doneItems})); }
+    function load(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||{active:[],done:[]};}catch{return{active:[],done:[]};}}
+    function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 
     function render(){
       listEl.innerHTML = '';
-      activeItems.forEach(it => {
-        if(it.count >= 8) return;
+      activeItems.forEach(it=>{
+        if(it.count>=8) return;
+        const li=document.createElement('li');
+        const row=document.createElement('div');
+        row.className='row';
 
-        const li = document.createElement('li');
-        const row = document.createElement('div');
-        row.className = 'row';
+        const name=document.createElement('span');
+        name.className='name';
+        name.textContent=it.name;
+        name.addEventListener('click',()=>increment(it.id));
 
-        const name = document.createElement('span');
-        name.className = 'name';
-        name.textContent = it.name;
-        name.addEventListener('click', () => increment(it.id));
+        const plusBtn=document.createElement('button');
+        plusBtn.className='icon-btn';
+        plusBtn.textContent='+';
+        plusBtn.addEventListener('click',()=>increment(it.id));
 
-        const minusBtn = document.createElement('button');
-        minusBtn.className = 'icon-btn';
-        minusBtn.textContent = '−';
-        minusBtn.addEventListener('click', () => decrement(it.id));
+        const count=document.createElement('span');
+        count.className='count';
+        count.textContent=`${it.count}/8`;
 
-        const plusBtn = document.createElement('button');
-        plusBtn.className = 'icon-btn';
-        plusBtn.textContent = '+';
-        plusBtn.addEventListener('click', () => increment(it.id));
+        const checkboxes=document.createElement('div');
+        checkboxes.className='checkboxes';
+        const abgabe=document.createElement('input');
+        abgabe.type='checkbox';
+        abgabe.checked=!!it.registered;
+        abgabe.addEventListener('change',()=>toggleAbgabe(it.id,abgabe.checked));
+        const anmeldung=document.createElement('input');
+        anmeldung.type='checkbox';
+        anmeldung.checked=!!it.enrolled;
+        anmeldung.addEventListener('change',()=>toggleAnmeldung(it.id,anmeldung.checked));
+        checkboxes.append(abgabe,anmeldung);
 
-        const count = document.createElement('span');
-        count.className = 'count';
-        count.textContent = `${it.count} / 8`;
+        const settings=document.createElement('button');
+        settings.className='icon-btn';
+        settings.textContent='⚙️';
+        settings.addEventListener('click',(e)=>{
+          e.stopPropagation();
+          togglePopup(li,it);
+        });
 
-        const checkboxes = document.createElement('div');
-        checkboxes.className = 'checkboxes';
-
-        const abgabe = document.createElement('input');
-        abgabe.type = 'checkbox';
-        abgabe.checked = !!it.registered;
-        abgabe.title = 'Abgabe';
-        abgabe.addEventListener('change', () => toggleAbgabe(it.id, abgabe.checked));
-
-        const anmeldung = document.createElement('input');
-        anmeldung.type = 'checkbox';
-        anmeldung.checked = !!it.enrolled;
-        anmeldung.title = 'Anmeldung';
-        anmeldung.addEventListener('change', () => toggleAnmeldung(it.id, anmeldung.checked));
-
-        checkboxes.append(abgabe, anmeldung);
-        row.append(name, minusBtn, plusBtn, count, checkboxes);
+        row.append(name,plusBtn,count,checkboxes,settings);
         li.append(row);
         listEl.append(li);
       });
       save();
     }
 
+    function togglePopup(li,item){
+      const old=li.querySelector('.popup');
+      if(old){old.remove();return;}
+      document.querySelectorAll('.popup').forEach(p=>p.remove());
+      const pop=document.createElement('div');
+      pop.className='popup';
+      const edit=document.createElement('button');
+      edit.textContent='✏️ Name bearbeiten';
+      edit.onclick=()=>{
+        const neu=prompt('Neuer Name:',item.name);
+        if(neu&&neu.trim()) item.name=neu.trim();
+        pop.remove();render();
+      };
+      const dec=document.createElement('button');
+      dec.textContent='🔽 Zähler reduzieren';
+      dec.onclick=()=>{
+        if(item.count>0){item.count--;item.dates.pop();}
+        pop.remove();render();
+      };
+      const back=document.createElement('button');
+      back.textContent='← Zurück';
+      back.onclick=()=>pop.remove();
+      pop.append(edit,dec,back);
+      li.append(pop);
+      document.addEventListener('click',function close(e){if(!li.contains(e.target)){pop.remove();document.removeEventListener('click',close);}}, {once:true});
+    }
+
     function renderDone(){
-      doneListEl.innerHTML = '';
-      doneItems.forEach(it => {
-        const li = document.createElement('li');
-        const row = document.createElement('div');
-        row.className = 'row';
+      doneListEl.innerHTML='';
+      doneItems.forEach(it=>{
+        const li=document.createElement('li');
+        const row=document.createElement('div');
+        row.className='row';
+        const name=document.createElement('span');
+        name.className='name';
+        name.textContent=it.name;
 
-        const name = document.createElement('span');
-        name.className = 'name';
-        name.textContent = it.name;
+        const abgabe=document.createElement('input');
+        abgabe.type='checkbox';
+        abgabe.disabled=true;
+        abgabe.checked=!!it.registered;
+        abgabe.style.accentColor=it.registered?'var(--green)':'var(--red)';
 
-        const abgabeBox = document.createElement('input');
-        abgabeBox.type = 'checkbox';
-        abgabeBox.disabled = true;
-        abgabeBox.checked = !!it.registered;
-        abgabeBox.title = 'Abgabe';
+        row.append(name,abgabe);
 
-        row.append(name, abgabeBox);
+        const date=document.createElement('span');
+        date.className='details';
+        date.textContent=`Abgeschlossen am ${it.completed}`;
 
-        const date = document.createElement('span');
-        date.className = 'details';
-        date.textContent = `Abgeschlossen am ${it.completed}`;
-
-        const detailsBtn = document.createElement('button');
-        detailsBtn.className = 'icon-btn';
-        detailsBtn.textContent = 'Details';
-
-        const detailsDiv = document.createElement('div');
-        detailsDiv.className = 'details hidden';
-        let text = it.dates.map((d,i)=>`${i+1}. ${d}`).join('<br>');
-        if(it.registeredDate || it.enrolledDate){
-          text += '<br>---';
-          if(it.registeredDate) text += `<br>Abgabe: ${it.registeredDate}`;
-          if(it.enrolledDate) text += `<br>Anmeldung: ${it.enrolledDate}`;
+        const detailsBtn=document.createElement('button');
+        detailsBtn.className='icon-btn';
+        detailsBtn.textContent='Details';
+        const detailsDiv=document.createElement('div');
+        detailsDiv.className='details hidden';
+        let text=it.dates.map((d,i)=>`${i+1}. Einheit – ${d}`).join('<br>');
+        if(it.registeredDate||it.enrolledDate){
+          text+='<br>---';
+          if(it.registeredDate) text+=`<br>Abgabe: ${it.registeredDate}`;
+          if(it.enrolledDate) text+=`<br>Anmeldung: ${it.enrolledDate}`;
         }
-        detailsDiv.innerHTML = text;
-
-        detailsBtn.addEventListener('click',()=>{
-          detailsDiv.classList.toggle('hidden');
-        });
-
-        li.append(row, date, detailsBtn, detailsDiv);
+        detailsDiv.innerHTML=text;
+        detailsBtn.addEventListener('click',()=>detailsDiv.classList.toggle('hidden'));
+        li.append(row,date,detailsBtn,detailsDiv);
         doneListEl.append(li);
       });
       save();
     }
 
     function addItem(name){
-      if(!name.trim()) return;
-      activeItems.unshift({ id: uid(), name: name.trim(), count: 0, dates: [], registered: false, enrolled: false, registeredDate: '', enrolledDate: '' });
+      if(!name.trim())return;
+      activeItems.unshift({id:uid(),name:name.trim(),count:0,dates:[],registered:false,enrolled:false,registeredDate:'',enrolledDate:''});
       render();
     }
 
     function increment(id){
-      activeItems = activeItems.map(i => {
-        if(i.id === id){
-          if(i.count < 8){
-            i.count++;
-            const datum = new Date().toLocaleDateString('de-DE');
-            i.dates.push(datum);
-            if(i.count === 8){
-              doneItems.unshift({...i, completed: datum});
-            }
-          }
+      activeItems=activeItems.map(i=>{
+        if(i.id===id && i.count<8){
+          i.count++;
+          const datum=new Date().toLocaleDateString('de-DE');
+          i.dates.push(datum);
+          if(i.count===8){doneItems.unshift({...i,completed:datum});}
         }
         return i;
       });
-      render();
-      renderDone();
+      render();renderDone();
     }
 
-    function decrement(id){
-      activeItems = activeItems.map(i => {
-        if(i.id === id){
-          if(i.count > 0){
-            i.count--;
-            i.dates.pop();
-          }
-        }
-        return i;
-      });
+    function toggleAbgabe(id,value){
+      const datum=new Date().toLocaleDateString('de-DE');
+      activeItems=activeItems.map(i=>i.id===id?{...i,registered:value,registeredDate:value?datum:i.registeredDate}:i);
       render();
     }
 
-    function toggleAbgabe(id, value){
-      const datum = new Date().toLocaleDateString('de-DE');
-      activeItems = activeItems.map(i => i.id === id ? {...i, registered:value, registeredDate:value?datum:i.registeredDate} : i);
+    function toggleAnmeldung(id,value){
+      const datum=new Date().toLocaleDateString('de-DE');
+      activeItems=activeItems.map(i=>i.id===id?{...i,enrolled:value,enrolledDate:value?datum:i.enrolledDate}:i);
       render();
     }
 
-    function toggleAnmeldung(id, value){
-      const datum = new Date().toLocaleDateString('de-DE');
-      activeItems = activeItems.map(i => i.id === id ? {...i, enrolled:value, enrolledDate:value?datum:i.enrolledDate} : i);
-      render();
-    }
+    function showActive(){activeSection.classList.remove('hidden');doneSection.classList.add('hidden');activeTab.classList.add('active');doneTab.classList.remove('active');}
+    function showDone(){activeSection.classList.add('hidden');doneSection.classList.remove('hidden');activeTab.classList.remove('active');doneTab.classList.add('active');}
 
-    function showActive(){
-      activeSection.classList.remove('hidden');
-      doneSection.classList.add('hidden');
-      activeTab.classList.add('active');
-      doneTab.classList.remove('active');
-    }
-
-    function showDone(){
-      activeSection.classList.add('hidden');
-      doneSection.classList.remove('hidden');
-      activeTab.classList.remove('active');
-      doneTab.classList.add('active');
-    }
-
-    addForm.addEventListener('submit', e => {
-      e.preventDefault();
-      addItem(nameInput.value);
-      nameInput.value = '';
-      nameInput.focus();
+    addForm.addEventListener('submit',e=>{
+      e.preventDefault();addItem(nameInput.value);nameInput.value='';nameInput.focus();
     });
+    activeTab.addEventListener('click',showActive);
+    doneTab.addEventListener('click',showDone);
+    backBtn.addEventListener('click',showActive);
 
-    activeTab.addEventListener('click', showActive);
-    doneTab.addEventListener('click', showDone);
-    backBtn.addEventListener('click', showActive);
-
-    render();
-    renderDone();
+    render();renderDone();
   </script>
 </body>
 </html>
