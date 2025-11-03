@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Namensliste mit Häkenzählfunktion</title>
+  <title>Namensliste mit Anwesenheitszählung (8 Freitage)</title>
   <style>
     :root{--bg:#f7f9fc;--card:#ffffff;--accent:#2563eb;--muted:#6b7280}
     *{box-sizing:border-box}
     body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:var(--bg); margin:0; padding:24px; color:#0f172a}
     .container{max-width:720px; margin:0 auto}
-    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px;flex-wrap:wrap}
     h1{margin:0;font-size:20px}
     .card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
-    form{display:flex;gap:8px}
+    form{display:flex;gap:8px;flex-wrap:wrap}
     input[type=text]{flex:1;padding:10px;border-radius:8px;border:1px solid #e6edf3}
     button{border:0;padding:10px 12px;border-radius:8px;cursor:pointer}
     button.primary{background:var(--accent);color:#fff}
@@ -21,134 +21,109 @@
     ul{list-style:none;padding:0;margin:12px 0 0}
     li{display:flex;align-items:center;gap:12px;padding:10px;border-radius:8px}
     li:nth-child(odd){background:linear-gradient(0deg, rgba(2,6,23,0.03), rgba(2,6,23,0.03))}
-    .name{flex:1}
-    .small{font-size:13px;color:var(--muted)}
-    .icon-btn{background:transparent;border:0;cursor:pointer;padding:6px;border-radius:6px}
+    .name{flex:1;cursor:pointer}
+    .count{font-weight:500}
+    .icon-btn{background:transparent;border:0;cursor:pointer;padding:6px;border-radius:6px;font-size:16px}
     .danger{background:#fee2e2;color:#b91c1c}
     footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
-    @media (max-width:520px){header{flex-direction:column;align-items:flex-start} form{flex-direction:column} .controls{justify-content:space-between}}
+    @media (max-width:520px){header{flex-direction:column;align-items:flex-start}}
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>Namensliste — Häkenzählfunktion</h1>
-      <div class="small">Einfach Namen hinzufügen, abhaken und Anzahl beobachten.</div>
+      <h1>Namensliste — Anwesenheit (8 Freitage)</h1>
+      <div class="small">Klicke auf den Namen, um +1 zu zählen (max. 8).</div>
     </header>
 
-    <section class="card" aria-labelledby="listtitle">
-      <h2 id="listtitle" style="font-size:16px;margin:0 0 12px">Liste verwalten</h2>
-
+    <section class="card">
       <form id="addForm">
-        <label for="nameInput" class="small" style="display:none">Name eingeben</label>
         <input id="nameInput" type="text" placeholder="Name hinzufügen (z. B. Maria)" autocomplete="off" />
-        <button id="addBtn" class="primary" aria-label="Name hinzufügen" type="submit">Hinzufügen</button>
+        <button id="addBtn" class="primary" type="submit">Hinzufügen</button>
       </form>
 
       <div class="controls">
-        <div>
-          <button id="selectAll">Alles markieren</button>
-          <button id="deselectAll">Markierung aufheben</button>
-        </div>
-        <div>
-          <button id="removeChecked" class="danger">Markierte entfernen</button>
-          <button id="clearAll" class="icon-btn" title="Alle entfernen">Alle löschen</button>
-        </div>
+        <button id="clearAll" class="danger">Alle löschen</button>
       </div>
 
-      <div class="stats" aria-live="polite">
+      <div class="stats">
         <div id="totalStat">Gesamt: 0</div>
-        <div id="checkedStat">Markiert: 0</div>
+        <div id="completeStat">Abgeschlossen (8/8): 0</div>
       </div>
 
-      <ul id="list" role="list" aria-label="Namensliste"></ul>
+      <ul id="list"></ul>
 
-      <footer>Die Liste wird lokal im Browser gespeichert (localStorage).</footer>
+      <footer>Die Anwesenheiten werden lokal im Browser gespeichert.</footer>
     </section>
   </div>
 
   <script>
-    // Lokaler Storage-Key
-    const STORAGE_KEY = 'namensliste_v1';
-
-    // State
+    const STORAGE_KEY = 'anwesenheitsliste_v1';
     let items = load() || [];
 
-    // DOM
     const listEl = document.getElementById('list');
     const totalStat = document.getElementById('totalStat');
-    const checkedStat = document.getElementById('checkedStat');
+    const completeStat = document.getElementById('completeStat');
     const addForm = document.getElementById('addForm');
     const nameInput = document.getElementById('nameInput');
-    const selectAllBtn = document.getElementById('selectAll');
-    const deselectAllBtn = document.getElementById('deselectAll');
-    const removeCheckedBtn = document.getElementById('removeChecked');
     const clearAllBtn = document.getElementById('clearAll');
 
-    // Hilfsfunktionen
     function save(){
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
-      catch(e){ console.warn('Speichern fehlgeschlagen', e); }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     }
     function load(){
-      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-      catch(e){ return []; }
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e){ return []; }
     }
     function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
-    // Render
     function render(){
       listEl.innerHTML = '';
       items.forEach(it => {
         const li = document.createElement('li');
-        li.setAttribute('data-id', it.id);
+        li.dataset.id = it.id;
 
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = Boolean(it.checked);
-        checkbox.setAttribute('aria-label', `Markiere ${it.name}`);
-        checkbox.addEventListener('change', () => toggleChecked(it.id));
+        const name = document.createElement('span');
+        name.className = 'name';
+        name.textContent = it.name;
+        name.title = 'Klicke für +1 Anwesenheit';
+        name.addEventListener('click', () => increment(it.id));
 
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'name';
-        nameSpan.textContent = it.name;
-        if(checkbox.checked) nameSpan.style.textDecoration = 'line-through';
+        const count = document.createElement('span');
+        count.className = 'count';
+        count.textContent = `${it.count} / 8`;
 
-        const editBtn = document.createElement('button');
-        editBtn.className = 'icon-btn';
-        editBtn.title = 'Bearbeiten';
-        editBtn.textContent = '✎';
-        editBtn.addEventListener('click', () => editItem(it.id));
+        const minusBtn = document.createElement('button');
+        minusBtn.className = 'icon-btn';
+        minusBtn.textContent = '−';
+        minusBtn.title = '1 abziehen';
+        minusBtn.addEventListener('click', () => decrement(it.id));
 
         const delBtn = document.createElement('button');
         delBtn.className = 'icon-btn';
-        delBtn.title = 'Löschen';
         delBtn.textContent = '🗑';
+        delBtn.title = 'Eintrag löschen';
         delBtn.addEventListener('click', () => removeItem(it.id));
 
-        li.appendChild(checkbox);
-        li.appendChild(nameSpan);
-        li.appendChild(editBtn);
+        li.appendChild(name);
+        li.appendChild(count);
+        li.appendChild(minusBtn);
         li.appendChild(delBtn);
-
         listEl.appendChild(li);
       });
-
       updateStats();
       save();
     }
 
     function updateStats(){
       const total = items.length;
-      const checked = items.filter(i => i.checked).length;
+      const complete = items.filter(i => i.count >= 8).length;
       totalStat.textContent = `Gesamt: ${total}`;
-      checkedStat.textContent = `Markiert: ${checked}`;
+      completeStat.textContent = `Abgeschlossen (8/8): ${complete}`;
     }
 
-    // Aktionen
     function addItem(name){
-      if(!name || !name.trim()) return;
-      items.unshift({ id: uid(), name: name.trim(), checked: false });
+      if(!name.trim()) return;
+      items.unshift({ id: uid(), name: name.trim(), count: 0 });
       render();
     }
 
@@ -157,26 +132,29 @@
       render();
     }
 
-    function toggleChecked(id){
-      items = items.map(i => i.id === id ? {...i, checked: !i.checked} : i);
+    function increment(id){
+      items = items.map(i => {
+        if(i.id === id){ i.count = Math.min(8, i.count + 1); }
+        return i;
+      });
       render();
     }
 
-    function editItem(id){
-      const item = items.find(i => i.id === id);
-      if(!item) return;
-      const neu = prompt('Neuer Name', item.name);
-      if(neu === null) return; // abgebrochen
-      item.name = neu.trim() || item.name;
+    function decrement(id){
+      items = items.map(i => {
+        if(i.id === id){ i.count = Math.max(0, i.count - 1); }
+        return i;
+      });
       render();
     }
 
-    function selectAll(){ items = items.map(i => ({...i, checked: true})); render(); }
-    function deselectAll(){ items = items.map(i => ({...i, checked: false})); render(); }
-    function removeChecked(){ items = items.filter(i => !i.checked); render(); }
-    function clearAll(){ if(confirm('Alle Einträge löschen?')){ items = []; render(); } }
+    function clearAll(){
+      if(confirm('Alle Einträge wirklich löschen?')){
+        items = [];
+        render();
+      }
+    }
 
-    // Events
     addForm.addEventListener('submit', e => {
       e.preventDefault();
       addItem(nameInput.value);
@@ -184,18 +162,9 @@
       nameInput.focus();
     });
 
-    selectAllBtn.addEventListener('click', selectAll);
-    deselectAllBtn.addEventListener('click', deselectAll);
-    removeCheckedBtn.addEventListener('click', () => {
-      if(confirm('Markierte Einträge wirklich entfernen?')) removeChecked();
-    });
     clearAllBtn.addEventListener('click', clearAll);
 
-    // Initial render
     render();
-
-    // Für Debugging: make global
-    window.__namensliste = {get: () => items, save, load};
   </script>
 </body>
 </html>
