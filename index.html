@@ -9,7 +9,7 @@
     *{box-sizing:border-box}
     body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:var(--bg); margin:0; padding:24px; color:#0f172a}
     .container{max-width:720px; margin:0 auto}
-    header{display:flex;align-items:center;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px;flex-wrap:wrap;justify-content:space-between}
     h1{margin:0;font-size:20px}
     .card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
     form{display:flex;gap:8px;flex-wrap:wrap}
@@ -19,130 +19,190 @@
     .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
     .stats{display:flex;gap:12px;align-items:center;margin-top:12px;color:var(--muted)}
     ul{list-style:none;padding:0;margin:12px 0 0}
-    li{display:flex;align-items:center;gap:12px;padding:10px;border-radius:8px}
+    li{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:8px}
     li:nth-child(odd){background:linear-gradient(0deg, rgba(2,6,23,0.03), rgba(2,6,23,0.03))}
-    .name{flex:1;cursor:pointer}
-    .count{font-weight:500}
+    .row{display:flex;align-items:center;gap:8px}
+    .name{flex:1;cursor:pointer;font-weight:500}
+    .count{font-weight:500;min-width:60px;text-align:center}
     .icon-btn{background:transparent;border:0;cursor:pointer;padding:6px;border-radius:6px;font-size:16px}
     .danger{background:#fee2e2;color:#b91c1c}
+    .details{font-size:13px;color:var(--muted);margin-left:28px}
+    .hidden{display:none}
+    .tabs{display:flex;gap:8px;margin-bottom:12px}
+    .tab-btn{background:#e5e7eb;padding:8px 12px;border-radius:8px;cursor:pointer;border:0}
+    .tab-btn.active{background:var(--accent);color:#fff}
     footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
-    @media (max-width:520px){header{flex-direction:column;align-items:flex-start}}
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>Namensliste — Anwesenheit (8 Freitage)</h1>
-      <div class="small">Klicke auf den Namen, um +1 zu zählen (max. 8).</div>
+      <h1>Anwesenheitsliste</h1>
+      <div class="tabs">
+        <button id="activeTab" class="tab-btn active">Aktive Kinder</button>
+        <button id="doneTab" class="tab-btn">Fertige Kinder</button>
+      </div>
     </header>
 
-    <section class="card">
+    <section class="card" id="activeSection">
       <form id="addForm">
         <input id="nameInput" type="text" placeholder="Name hinzufügen (z. B. Maria)" autocomplete="off" />
         <button id="addBtn" class="primary" type="submit">Hinzufügen</button>
       </form>
-
       <div class="controls">
         <button id="clearAll" class="danger">Alle löschen</button>
       </div>
-
       <div class="stats">
         <div id="totalStat">Gesamt: 0</div>
-        <div id="completeStat">Abgeschlossen (8/8): 0</div>
       </div>
-
       <ul id="list"></ul>
-
-      <footer>Die Anwesenheiten werden lokal im Browser gespeichert.</footer>
     </section>
+
+    <section class="card hidden" id="doneSection">
+      <button id="backBtn">← Zurück</button>
+      <h2>Fertige Kinder</h2>
+      <ul id="doneList"></ul>
+    </section>
+
+    <footer>Die Anwesenheiten werden lokal im Browser gespeichert.</footer>
   </div>
 
   <script>
-    const STORAGE_KEY = 'anwesenheitsliste_v1';
-    let items = load() || [];
+    const STORAGE_KEY = 'anwesenheitsliste_v2';
+    let activeItems = load().active || [];
+    let doneItems = load().done || [];
 
     const listEl = document.getElementById('list');
+    const doneListEl = document.getElementById('doneList');
     const totalStat = document.getElementById('totalStat');
-    const completeStat = document.getElementById('completeStat');
     const addForm = document.getElementById('addForm');
     const nameInput = document.getElementById('nameInput');
     const clearAllBtn = document.getElementById('clearAll');
+    const activeTab = document.getElementById('activeTab');
+    const doneTab = document.getElementById('doneTab');
+    const activeSection = document.getElementById('activeSection');
+    const doneSection = document.getElementById('doneSection');
+    const backBtn = document.getElementById('backBtn');
 
     function save(){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({active: activeItems, done: doneItems}));
     }
+
     function load(){
-      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e){ return []; }
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {active:[],done:[]}; } catch(e){ return {active:[],done:[]}; }
     }
+
     function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
     function render(){
       listEl.innerHTML = '';
-      items.forEach(it => {
+      activeItems.forEach(it => {
         const li = document.createElement('li');
-        li.dataset.id = it.id;
+        const row = document.createElement('div');
+        row.className = 'row';
 
         const name = document.createElement('span');
         name.className = 'name';
         name.textContent = it.name;
-        name.title = 'Klicke für +1 Anwesenheit';
         name.addEventListener('click', () => increment(it.id));
 
         const count = document.createElement('span');
         count.className = 'count';
         count.textContent = `${it.count} / 8`;
 
+        const plusBtn = document.createElement('button');
+        plusBtn.className = 'icon-btn';
+        plusBtn.textContent = '+';
+        plusBtn.addEventListener('click', () => increment(it.id));
+
         const minusBtn = document.createElement('button');
         minusBtn.className = 'icon-btn';
         minusBtn.textContent = '−';
-        minusBtn.title = '1 abziehen';
         minusBtn.addEventListener('click', () => decrement(it.id));
 
         const delBtn = document.createElement('button');
         delBtn.className = 'icon-btn';
         delBtn.textContent = '🗑';
-        delBtn.title = 'Eintrag löschen';
         delBtn.addEventListener('click', () => removeItem(it.id));
 
-        li.appendChild(name);
-        li.appendChild(count);
-        li.appendChild(minusBtn);
-        li.appendChild(delBtn);
-        listEl.appendChild(li);
+        row.append(name, minusBtn, plusBtn, count, delBtn);
+        li.append(row);
+        listEl.append(li);
       });
-      updateStats();
+      totalStat.textContent = `Gesamt: ${activeItems.length}`;
       save();
     }
 
-    function updateStats(){
-      const total = items.length;
-      const complete = items.filter(i => i.count >= 8).length;
-      totalStat.textContent = `Gesamt: ${total}`;
-      completeStat.textContent = `Abgeschlossen (8/8): ${complete}`;
+    function renderDone(){
+      doneListEl.innerHTML = '';
+      doneItems.forEach(it => {
+        const li = document.createElement('li');
+        const row = document.createElement('div');
+        row.className = 'row';
+        const name = document.createElement('span');
+        name.className = 'name';
+        name.textContent = it.name;
+
+        const date = document.createElement('span');
+        date.className = 'details';
+        date.textContent = `Abgeschlossen am ${it.completed}`;
+
+        const detailsBtn = document.createElement('button');
+        detailsBtn.className = 'icon-btn';
+        detailsBtn.textContent = 'Details';
+
+        const detailsDiv = document.createElement('div');
+        detailsDiv.className = 'details hidden';
+        detailsDiv.innerHTML = it.dates.map((d,i)=>`${i+1}. ${d}`).join('<br>');
+        detailsBtn.addEventListener('click',()=>{
+          detailsDiv.classList.toggle('hidden');
+        });
+
+        row.append(name, detailsBtn);
+        li.append(row, date, detailsDiv);
+        doneListEl.append(li);
+      });
+      save();
     }
 
     function addItem(name){
       if(!name.trim()) return;
-      items.unshift({ id: uid(), name: name.trim(), count: 0 });
+      activeItems.unshift({ id: uid(), name: name.trim(), count: 0, dates: [] });
       render();
     }
 
     function removeItem(id){
-      items = items.filter(i => i.id !== id);
+      activeItems = activeItems.filter(i => i.id !== id);
       render();
     }
 
     function increment(id){
-      items = items.map(i => {
-        if(i.id === id){ i.count = Math.min(8, i.count + 1); }
+      activeItems = activeItems.map(i => {
+        if(i.id === id){
+          if(i.count < 8){
+            i.count++;
+            const datum = new Date().toLocaleDateString('de-DE');
+            i.dates.push(datum);
+            if(i.count === 8){
+              doneItems.unshift({...i, completed: datum});
+              activeItems = activeItems.filter(x => x.id !== id);
+            }
+          }
+        }
         return i;
       });
       render();
+      renderDone();
     }
 
     function decrement(id){
-      items = items.map(i => {
-        if(i.id === id){ i.count = Math.max(0, i.count - 1); }
+      activeItems = activeItems.map(i => {
+        if(i.id === id){
+          if(i.count > 0){
+            i.count--;
+            i.dates.pop();
+          }
+        }
         return i;
       });
       render();
@@ -150,9 +210,25 @@
 
     function clearAll(){
       if(confirm('Alle Einträge wirklich löschen?')){
-        items = [];
+        activeItems = [];
+        doneItems = [];
         render();
+        renderDone();
       }
+    }
+
+    function showActive(){
+      activeSection.classList.remove('hidden');
+      doneSection.classList.add('hidden');
+      activeTab.classList.add('active');
+      doneTab.classList.remove('active');
+    }
+
+    function showDone(){
+      activeSection.classList.add('hidden');
+      doneSection.classList.remove('hidden');
+      activeTab.classList.remove('active');
+      doneTab.classList.add('active');
     }
 
     addForm.addEventListener('submit', e => {
@@ -163,8 +239,12 @@
     });
 
     clearAllBtn.addEventListener('click', clearAll);
+    activeTab.addEventListener('click', showActive);
+    doneTab.addEventListener('click', showDone);
+    backBtn.addEventListener('click', showActive);
 
     render();
+    renderDone();
   </script>
 </body>
 </html>
