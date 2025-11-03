@@ -27,19 +27,19 @@
     li{display:flex;flex-direction:column;padding:6px;border-radius:6px;position:relative}
     li:nth-child(odd){background:rgba(2,6,23,0.03)}
     .row{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow:hidden}
-    .name{flex:1;cursor:pointer;font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:4px;border-radius:4px;transition:background-color .2s}
-    .name:active{background-color:var(--click)}
+    .name{flex:1;font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:4px;border-radius:4px;}
     .count{font-size:14px;min-width:50px;text-align:center}
     .checkboxes{display:flex;gap:4px;align-items:center;justify-content:center}
     input[type=checkbox]{transform:scale(1.1);cursor:pointer}
-    .icon-btn{background:transparent;border:1px solid #d1d5db;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:16px;line-height:1;transition:background-color .2s;min-width:36px;min-height:32px}
+    .icon-btn{background:transparent;border:1px solid #d1d5db;cursor:pointer;padding:4px;border-radius:6px;font-size:14px;line-height:1;transition:background-color .2s;min-width:28px;min-height:28px;display:flex;align-items:center;justify-content:center}
     .icon-btn:active{background-color:var(--click)}
     .hidden{display:none}
     .details{font-size:12px;color:var(--muted);margin-left:22px}
     footer{text-align:center;color:var(--muted);font-size:12px;margin-top:14px}
     .check-title{text-align:right;font-size:12px;color:var(--muted);margin-bottom:4px}
-    .popup{position:absolute;right:10px;top:40px;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,0.1);padding:6px;display:flex;flex-direction:column;gap:6px;z-index:10}
+    .popup{position:absolute;right:10px;top:40px;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,0.1);padding:6px;display:flex;flex-direction:column;gap:6px;z-index:10;opacity:0;animation:fadeIn .2s forwards}
     .popup button{font-size:13px;padding:6px 8px}
+    @keyframes fadeIn{from{opacity:0;transform:scale(0.95);}to{opacity:1;transform:scale(1);}}
   </style>
 </head>
 <body>
@@ -57,7 +57,7 @@
         <input id="nameInput" type="text" placeholder="Name hinzufügen (z. B. Maria)" autocomplete="off" />
         <button id="addBtn" class="primary" type="submit">Hinzufügen</button>
       </form>
-      <div class="check-title">Abgabe / Anmeldung</div>
+      <div class="check-title">Anmeldung ausgeteilt / Anmeldung erhalten</div>
       <ul id="list"></ul>
     </section>
 
@@ -71,7 +71,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'anwesenheitsliste_v7';
+    const STORAGE_KEY = 'anwesenheitsliste_v8';
     let activeItems = load().active || [];
     let doneItems = load().done || [];
 
@@ -100,7 +100,6 @@
         const name=document.createElement('span');
         name.className='name';
         name.textContent=it.name;
-        name.addEventListener('click',()=>increment(it.id));
 
         const plusBtn=document.createElement('button');
         plusBtn.className='icon-btn';
@@ -116,16 +115,19 @@
         const abgabe=document.createElement('input');
         abgabe.type='checkbox';
         abgabe.checked=!!it.registered;
+        abgabe.title='Anmeldung ausgeteilt';
         abgabe.addEventListener('change',()=>toggleAbgabe(it.id,abgabe.checked));
         const anmeldung=document.createElement('input');
         anmeldung.type='checkbox';
         anmeldung.checked=!!it.enrolled;
+        anmeldung.title='Anmeldung erhalten';
         anmeldung.addEventListener('change',()=>toggleAnmeldung(it.id,anmeldung.checked));
         checkboxes.append(abgabe,anmeldung);
 
         const settings=document.createElement('button');
         settings.className='icon-btn';
         settings.textContent='⚙️';
+        settings.style.fontSize='12px';
         settings.addEventListener('click',(e)=>{
           e.stopPropagation();
           togglePopup(li,it);
@@ -195,8 +197,8 @@
         let text=it.dates.map((d,i)=>`${i+1}. Einheit – ${d}`).join('<br>');
         if(it.registeredDate||it.enrolledDate){
           text+='<br>---';
-          if(it.registeredDate) text+=`<br>Abgabe: ${it.registeredDate}`;
-          if(it.enrolledDate) text+=`<br>Anmeldung: ${it.enrolledDate}`;
+          if(it.registeredDate) text+=`<br>Anmeldung ausgeteilt: ${it.registeredDate}`;
+          if(it.enrolledDate) text+=`<br>Anmeldung erhalten: ${it.enrolledDate}`;
         }
         detailsDiv.innerHTML=text;
         detailsBtn.addEventListener('click',()=>detailsDiv.classList.toggle('hidden'));
