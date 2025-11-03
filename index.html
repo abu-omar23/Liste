@@ -55,10 +55,10 @@
 
     <section class="card" id="activeSection">
       <form id="addForm">
-        <input id="nameInput" type="text" placeholder="Name hinzufügen (z. B. Maria)" autocomplete="off" />
+        <input id="nameInput" type="text" placeholder="Name hinzufügen" autocomplete="off" />
         <button id="addBtn" class="primary" type="submit">Hinzufügen</button>
       </form>
-      <div class="check-title">Abgabe / Anmeldung</div>
+      <div class="check-title">verteilt / erhalten</div>
       <ul id="list"></ul>
     </section>
 
@@ -68,7 +68,7 @@
       <ul id="doneList"></ul>
     </section>
 
-    <footer>Alles wird lokal im Browser gespeichert.</footer>
+    
   </div>
 
   <script>
@@ -175,35 +175,52 @@
         const name=document.createElement('span');
         name.className='name';
         name.textContent=it.name;
-
+    
         const status=document.createElement('div');
         status.className='status-box';
-        status.style.background=it.registered?'var(--green)':'var(--red)';
-
+        status.style.background=it.registered ? 'var(--green)' : 'var(--red)';
+    
         row.append(name,status);
-
+    
         const date=document.createElement('span');
         date.className='details';
         date.textContent=`Abgeschlossen am ${it.completed}`;
-
+    
         const detailsBtn=document.createElement('button');
         detailsBtn.className='icon-btn';
         detailsBtn.textContent='Details';
+    
         const detailsDiv=document.createElement('div');
         detailsDiv.className='details hidden';
         let text=it.dates.map((d,i)=>`${i+1}. Einheit – ${d}`).join('<br>');
-        if(it.registeredDate||it.enrolledDate){
-          text+='<br>---';
-          if(it.registeredDate) text+=`<br>Anmeldung ausgeteilt: ${it.registeredDate}`;
-          if(it.enrolledDate) text+=`<br>Anmeldung erhalten: ${it.enrolledDate}`;
+        text += '<br>---';
+    
+        // Detailanzeige mit Farben und Hinweisen
+        if(it.registeredDate){
+          // Ausgeteilt
+          text += `<br>Anmeldung ausgeteilt: ${it.registeredDate}`;
+          if(it.enrolledDate){
+            // Erhalten
+            text += `<br>Anmeldung erhalten: ${it.enrolledDate}`;
+          } else {
+            // Noch nicht erhalten
+            text += `<br><span style="color:var(--red)">Anmeldung nicht erhalten</span>`;
+          }
+        } else {
+          // Noch nicht ausgeteilt
+          text += `<br><span style="color:var(--red)">Anmeldung nicht ausgeteilt</span>`;
+          text += `<br><span style="color:var(--red)">Anmeldung nicht erhalten</span>`;
+          text += `<br><b style="color:var(--red)">Anmeldung noch austeilen!</b>`;
         }
-        detailsDiv.innerHTML=text;
+    
+        detailsDiv.innerHTML = text;
         detailsBtn.addEventListener('click',()=>detailsDiv.classList.toggle('hidden'));
         li.append(row,date,detailsBtn,detailsDiv);
         doneListEl.append(li);
       });
       save();
     }
+
 
     function addItem(name){
       if(!name.trim())return;
